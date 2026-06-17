@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Haven Scroll - Your Minimalist Offline Sanctuary</title>
+  <meta name="theme-color" content="#0A0E17">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- STEALTH MODE OVERLAY -->
+  <div id="stealth-overlay" onclick="handleStealthScreenTap(event)">
+    <div class="stealth-header"><div class="stealth-breadcrumbs">Akademiskt Arkiv > Biologi > Cellbiologi</div><div class="stealth-title">Grundläggande Cellandning & Termodynamik</div></div>
+    <div class="stealth-toc"><div class="stealth-toc-title">Innehållsförteckning</div><ul><li>1. Fotosyntesens ljusberoende reaktioner</li><li>2. ATP-syntes och kemiosmos</li><li>3. Entropiökning i slutna biologiska system</li></ul></div>
+    <div class="stealth-body"><p><strong>1. Inledning:</strong> Biologiska organismer kräver en kontinuerlig tillförsel av fri energi för att motverka den naturliga entropiökningen. Processen där kemisk energi utvinns ur kolhydrater sker främst i mitokondrierna via citronsyracykeln och elektrontransportkedjan.</p><p><strong>2. Energiproduktion:</strong> Under mitokondriens andningskedja pumpas protoner över det inre membranet för att bygga upp en elektrokemisk potentialgradient. Denna gradient driver sedan enzymet ATP-syntas att binda ADP och oorganiskt fosfat till energirika ATP-molekyler.</p><p><strong>3. Termodynamiska aspeker:</strong> Cellens förmåga att bibehålla låg entropi (ordning) sker genom att ständigt avge värmeenergi till den yttre miljön, vilket uppfyller termodynamikens andra huvudsats.</p></div>
+    <div class="stealth-footer-trigger" id="stealth-exit-trigger">Dokument-ID: SIS-3948572-B | © Skolverket Digitala Arkiv</div>
+  </div>
+
+  <!-- AMBIENT STARFIELD LAYOUT -->
+  <div id="ambient-starfield-overlay">
+    <canvas id="starfield-canvas"></canvas>
+    <div class="ambient-header"><div class="brand-logo" style="font-size:1.15rem;">Haven<span>Scroll</span></div><button class="ambient-exit" onclick="toggleAmbientStarfield(false)">Exit Ambient Mode</button></div>
+    <div class="ambient-pacer-indicator"><div class="ambient-pacer-text" id="ambient-pacer-label">Breathe deeply...</div></div>
+    <div class="ambient-footer">Forest Ambience & Starfield Active</div>
+  </div>
+
+  <!-- INTERACTIVE ENVELOPE MODAL -->
+  <div id="letter-modal">
+    <button class="modal-close" onclick="closeLetter()">← Back to Oasis</button>
+    <div class="modal-content"><p class="modal-text" id="letter-text-box"></p><p class="modal-signature">From Omer, with love</p></div>
+  </div>
+
+  <!-- PRIMARY APP WRAPPER -->
+  <div id="app-wrapper">
+    <!-- CINEMATIC SPLASH SCREEN -->
+    <div id="splash-screen">
+      <div class="splash-logo">
+        <div class="splash-pill">Encrypted Offline Sanctuary</div>
+        <div class="logo-wrapper"><h1 class="splash-title-main">Haven<span>Scroll</span></h1><div class="splash-title-shadow">HavenScroll</div></div>
+        <p class="splash-subtitle">Premium offline quotes custom curated and aligned for Danna</p>
+      </div>
+      <div class="splash-loader-container"><div class="splash-loader-bar"></div></div>
+      <div class="splash-footer">✦ 100% LOCAL PRIVACY ✦</div>
+    </div>
+    <audio id="splash-audio" src="./audio/splash-sound.mp3" preload="auto"></audio>
+
+    <!-- GLOBAL TOP APP BAR -->
+    <div id="top-bar">
+      <div class="top-meta">
+        <div class="brand-logo">Haven<span>Scroll</span></div>
+        <div class="top-action-bar">
+          <button class="header-btn" id="sound-shield-btn" onclick="toggleSoundShield()" title="Activate Sound Shield (Forest Rain)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span id="sound-btn-text">Sound Shield</span>
+          </button>
+          <button class="header-btn" id="pacer-shortcut" onclick="scrollToPacerCard()" title="Breathe Pacer">≈ Pacer</button>
+          <button class="stealth-btn" onclick="activateStealthMode()" title="Stealth Mode (Schoolwork Camouflage)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div class="filter-row" id="filter-container">
+        <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">All Tracks</button>
+        <button class="filter-pill" data-filter="sanctuary" onclick="setFilter('sanctuary')">✦ Sanctuary</button>
+        <button class="filter-pill" data-filter="neuro" onclick="setFilter('neuro')">≈ Neuro-Sync</button>
+        <button class="filter-pill" data-filter="satire" onclick="setFilter('satire')">❖ Dry Satire</button>
+        <button class="filter-pill author-toggle-btn" id="author-toggle-btn" onclick="toggleAuthorPanel()">👤 Authors</button>
+      </div>
+      <div id="author-badge-row" class="author-badge-row" style="display:none">
+        <span style="font-size:0.7rem;color:var(--text-muted)">Author:</span>
+        <span class="author-badge-name"></span>
+        <button class="author-badge-clear" onclick="clearAuthorFilter()">✕</button>
+      </div>
+    </div>
+
+    <!-- AUTHOR FILTER PANEL -->
+    <div id="author-panel" class="author-panel">
+      <input type="search" id="author-search" class="author-search-input" placeholder="Search author…" oninput="renderAuthorList(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <div id="author-list" class="author-list"></div>
+    </div>
+
+    <!-- ENDLESS STREAM CONTAINER -->
+    <div id="feed-container"></div>
+
+    <!-- HAVEN BOOKSHELF + 3D BOOK READER -->
+    <div id="books-view">
+
+      <!-- SHELF (default) -->
+      <div id="bookshelf-view">
+        <div class="oasis-header" style="margin-bottom:0.5rem; padding-bottom:0.5rem; flex-shrink:0;"><h2 class="oasis-title">Haven <span>Bookshelf</span></h2><p class="oasis-subtitle">Your private offline library. Tap a cover to start reading.</p></div>
+        <div id="continue-reading-slot"></div>
+        <div id="bookshelf-grid"></div>
+      </div>
+
+      <!-- READER (opens from a shelf tile) -->
+      <div id="book-reader-view">
+        <div class="reader-header">
+          <button class="reader-back-btn" onclick="closeReader()">‹ Shelf</button>
+          <div class="reader-title-block">
+            <div class="reader-book-title" id="reader-book-title">Book Title</div>
+            <div class="reader-book-author" id="reader-book-author"></div>
+          </div>
+        </div>
+        <div class="book-container" id="book-touch-surface">
+          <div class="tap-zone-left" onclick="turnPage('prev')">‹</div><div class="tap-zone-right" onclick="turnPage('next')">›</div>
+          <div class="book-page-slider" id="book-page-slider"></div>
+          <div class="book-pagination"><span id="book-author-tag" style="text-transform: uppercase; letter-spacing: 0.05em; font-size:0.65rem;">Haven Library</span><span id="book-progress-text">Page 1 of 1</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- OASIS TOOLKIT -->
+    <div id="oasis-view">
+      <div class="oasis-header"><h2 class="oasis-title">Your <span>Oasis</span></h2><p class="oasis-subtitle">Tactile toolkit designed to block external noise, regain internal balance, and connect instantly offline.</p></div>
+
+      <!-- SAME SKY — Moon phase panel -->
+      <div class="same-sky-panel" id="same-sky-panel">
+        <p class="same-sky-label">same sky</p>
+        <div class="same-sky-moon-wrap">
+          <canvas id="moon-canvas" width="220" height="220"></canvas>
+          <div class="same-sky-aura" aria-hidden="true"></div>
+        </div>
+        <p class="same-sky-phase" id="moon-phase-name">—</p>
+        <p class="same-sky-illum" id="moon-illum-pct"></p>
+        <div class="same-sky-locations" id="moon-locations">
+          <button class="same-sky-loc-btn" id="btn-sky-a" onclick="switchSkyView('a')">—</button>
+          <span class="same-sky-dot" aria-hidden="true"></span>
+          <button class="same-sky-loc-btn" id="btn-sky-b" onclick="switchSkyView('b')">Sweden</button>
+        </div>
+        <p class="same-sky-caption">The same moon rises over both of you tonight.</p>
+      </div>
+
+      <!-- PRAYER TIMES -->
+      <div class="oasis-drawer" id="drawer-prayers">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-prayers')"><span>☽ Prayer Times</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content">
+          <div class="prayer-loc-tabs" id="prayer-loc-tabs"></div>
+          <p class="prayer-date-row" id="prayer-date-row"></p>
+          <div class="prayer-list" id="prayer-list"></div>
+          <div class="prayer-stats-row" id="prayer-stats-row"></div>
+          <p class="prayer-quote" id="prayer-quote"></p>
+        </div>
+      </div>
+
+      <div class="challenge-panel">
+        <div class="challenge-badge">Your Micro-Task Today</div>
+        <div class="challenge-text" id="challenge-display">Relax your shoulders, slightly part your teeth, and let your jaw completely unclench. Notice the weight on your seat.</div>
+        <div class="challenge-action"><span style="font-size:0.68rem; color:var(--text-muted);">Completely offline</span><button class="challenge-btn" id="challenge-btn" onclick="completeDailyChallenge()">Complete Task</button></div>
+      </div>
+
+      <!-- PERSONAL STATS / JOURNEY -->
+      <div class="oasis-drawer" id="drawer-journey">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-journey')"><span>🌱 Your Journey</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content">
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem; line-height:1.4;">Transparent statistics, stored only on this device. Nothing is tracked or sent anywhere.</p>
+          <div class="stats-grid">
+            <div class="stat-tile"><div class="stat-value" id="stat-time">0m</div><div class="stat-label">Time in Haven</div></div>
+            <div class="stat-tile"><div class="stat-value" id="stat-saved">0</div><div class="stat-label">Quotes Saved</div></div>
+            <div class="stat-tile"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Day Streak</div></div>
+            <div class="stat-tile"><div class="stat-value" id="stat-breaths">0</div><div class="stat-label">Breath Cycles</div></div>
+          </div>
+          <div class="level-row">
+            <div class="level-badge" id="level-badge">1</div>
+            <div class="level-info">
+              <div class="level-name" id="level-name">Seedling</div>
+              <div class="level-bar-track"><div class="level-bar-fill" id="level-bar"></div></div>
+              <div class="level-sub" id="level-sub">Quietly growing…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TACTILE WORRY STONE -->
+      <div class="oasis-drawer" id="drawer-stone">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-stone')"><span>🪨 Worry Stone</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content">
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem; line-height:1.4;">Rest your thumb on the stone and rub slowly. Choose Ripple for tactile waves, Spirograph for a random auto-drawn pattern, or Sculpt to drag and morph your own geometric shape in real time.</p>
+          <!-- mode toggle -->
+          <div class="stone-mode-row">
+            <button class="stone-mode-btn stone-mode-btn--active" id="stone-mode-ripple" onclick="toggleStoneMode('ripple')">〜 Ripple</button>
+            <button class="stone-mode-btn" id="stone-mode-spiro" onclick="toggleStoneMode('spiro')">✦ Spirograph</button>
+            <button class="stone-mode-btn" id="stone-mode-sculpt" onclick="toggleStoneMode('sculpt')">✎ Sculpt</button>
+          </div>
+          <!-- spirograph tools (hidden in ripple mode) -->
+          <div class="stone-draw-tools" id="stone-draw-tools" style="display:none">
+            <button class="stone-color-btn stone-color-btn--active" onclick="setStoneColor('#D4AF37', this)" style="background:#D4AF37" title="Gold"></button>
+            <button class="stone-color-btn" onclick="setStoneColor('#81C784', this)" style="background:#81C784" title="Sage"></button>
+            <button class="stone-color-btn" onclick="setStoneColor('#ffffff', this)" style="background:#ffffff" title="White"></button>
+            <button class="stone-color-btn" onclick="setStoneColor('#F48FB1', this)" style="background:#F48FB1" title="Rose"></button>
+            <button class="stone-clear-btn" onclick="newSpirograph()">↺ New Pattern</button>
+          </div>
+          <div class="worry-stone-wrap" id="worry-stone-wrap">
+            <canvas id="worry-stone-canvas"></canvas>
+            <div class="worry-hint">Drag your finger across the stone</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PODCAST MODULE -->
+      <div class="oasis-drawer" id="drawer-podcasts">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-podcasts')"><span>🎙️ Podcasts (Offline)</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content">
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem; line-height:1.4;">Select an episode to play or share.</p>
+          <div id="podcast-container"></div>
+        </div>
+      </div>
+
+      <div class="oasis-drawer" id="drawer-saved">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-saved')"><span>★ Saved Tracks</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content"><p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem; line-height:1.4;">Your bookmarked quotes, wisdoms, and insights preserved safely in offline storage:</p><div id="saved-quotes-container" style="display:flex; flex-direction:column; gap:0.65rem;"></div></div>
+      </div>
+
+      <div class="oasis-drawer" id="drawer-vibe">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-vibe')"><span>🍃 Vibe Sync Filtering</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content">
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem; line-height:1.4;">Align your feed algorithm to exactly how you feel. We will instantly filter the cards to match your state:</p>
+          <div class="vibe-grid">
+            <div class="vibe-btn" data-vibe="overwhelmed" onclick="setVibeSync('overwhelmed')"><div class="vibe-icon">🕊️</div><div class="vibe-name">Overwhelmed</div><div class="vibe-desc">Calming wisdom</div></div>
+            <div class="vibe-btn" data-vibe="restless" onclick="setVibeSync('restless')"><div class="vibe-icon">⚡</div><div class="vibe-name">Restless</div><div class="vibe-desc">Physical grounding</div></div>
+            <div class="vibe-btn" data-vibe="weary" onclick="setVibeSync('weary')"><div class="vibe-icon">🌙</div><div class="vibe-name">Weary</div><div class="vibe-desc">Lifting peace</div></div>
+            <div class="vibe-btn" data-vibe="frustrated" onclick="setVibeSync('frustrated')"><div class="vibe-icon">🌪️</div><div class="vibe-name">Frustrated</div><div class="vibe-desc">Dry Italian humor</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="oasis-drawer" id="drawer-grounding">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-grounding')"><span>🕊️ 5-4-3-2-1 Sensory Reset</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content">
+          <div class="grounding-box"><div class="grounding-number" id="grounding-num">5</div><div class="grounding-instruction" id="grounding-txt">Look around you and locate 5 visible objects. Focus deeply on their shadows, colors, or edges.</div><div class="grounding-step-info" id="grounding-step">Step 1 of 5</div><div class="grounding-control"><button class="empty-cta" id="grounding-action-btn" onclick="nextGroundingStep()" style="padding:0.4rem 1rem; font-size:0.68rem;">Acknowledge & Continue</button></div></div>
+        </div>
+      </div>
+
+      <div class="oasis-drawer" id="drawer-letters">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-letters')"><span>✉️ Letters from Omer</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content"><p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem; line-height:1.4;">Encrypted words kept safe on your disk. Click any envelope to unlock a message of support:</p><div id="letters-container"></div></div>
+      </div>
+
+      <div class="oasis-drawer" id="drawer-ambient">
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-ambient')"><span>🌌 Starfield Ambient Mode</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content"><p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem; line-height:1.4;">Removes all texts and transforms the screen into a slow-moving, breathing cosmos. The stars swell and contract exactly in tune with your 8.7-second physiological sigh breathing cycle.</p><button class="empty-cta" onclick="toggleAmbientStarfield(true)" style="width:100%; border-radius:8px;">Launch Ambient Starfield</button></div>
+      </div>
+    </div>
+
+    <!-- TOAST PORTAL -->
+    <div id="toast"><span class="toast-icon">★</span><span id="toast-text">Saved to Pocket Feed</span></div>
+
+    <!-- UPDATE AVAILABLE BANNER -->
+    <div id="update-banner" style="position:absolute; top:0; left:0; right:0; z-index:998; background: linear-gradient(135deg, rgba(129,199,132,0.12), rgba(255,183,77,0.1)); border-bottom: 1px solid rgba(129,199,132,0.3); padding: 0.75rem 1.25rem; display:none; align-items:center; justify-content:space-between; gap:0.75rem; backdrop-filter:blur(8px);">
+      <div style="display:flex; align-items:center; gap:0.5rem; flex:1;">
+        <span style="font-size:1rem;">✨</span>
+        <div>
+          <div style="font-size:0.78rem; font-weight:800; color:#FFF;">New update available!</div>
+          <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.1rem;">Tap to get the latest features</div>
+        </div>
+      </div>
+      <button onclick="applyUpdate()" style="background:var(--accent-sage); color:#0A0E17; border:none; border-radius:9999px; padding:0.4rem 1rem; font-size:0.72rem; font-weight:800; cursor:pointer; white-space:nowrap; flex-shrink:0;">Update Now</button>
+      <button onclick="dismissUpdateBanner()" style="background:none; border:none; color:var(--text-muted); font-size:1.1rem; cursor:pointer; padding:0.25rem; flex-shrink:0; line-height:1;">×</button>
+    </div>
+
+    <!-- HIDDEN NATIVE AUDIO ELEMENT FOR PODCASTS -->
+    <audio id="native-audio" style="display:none;"></audio>
+
+    <!-- GLOBAL AUDIO PLAYER -->
+    <div id="global-audio-player">
+      <div class="player-top-row">
+        <div class="player-thumb">🎙️</div>
+        <div class="player-info">
+          <div class="player-title" id="player-title">Episode Title</div>
+          <div class="player-sub" id="player-author">Podcast Name</div>
+        </div>
+        <button class="close-player-btn" onclick="closePodcastPlayer()">×</button>
+      </div>
+      <div class="player-progress-row">
+        <span class="player-time" id="player-current">0:00</span>
+        <input type="range" class="player-scrubber" id="player-scrubber" min="0" max="100" value="0" step="0.1" oninput="onScrubberInput(this.value)" onchange="onScrubberChange(this.value)">
+        <span class="player-time right" id="player-duration">0:00</span>
+      </div>
+      <div class="player-controls-row">
+        <button class="player-skip-btn" onclick="skipPodcast(-30)" title="Back 30s">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-4.95"></path></svg>
+          <span>30s</span>
+        </button>
+        <button class="player-skip-btn" onclick="skipPodcast(-10)" title="Back 10s">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-4.95"></path></svg>
+          <span>10s</span>
+        </button>
+        <button class="play-pause-btn" id="player-play-btn" onclick="togglePodcastPlay()">▶</button>
+        <button class="player-skip-btn" onclick="skipPodcast(10)" title="Forward 10s">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-.49-4.95"></path></svg>
+          <span>10s</span>
+        </button>
+        <button class="player-skip-btn" onclick="skipPodcast(30)" title="Forward 30s">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-.49-4.95"></path></svg>
+          <span>30s</span>
+        </button>
+        <button class="player-speed-btn" id="player-speed-btn" onclick="cyclePlaybackSpeed()" title="Playback speed">1×</button>
+      </div>
+    </div>
+
+    <!-- BOTTOM APP NAV BAR -->
+    <div id="bottom-nav">
+      <button class="tab-btn active" id="tab-stream" onclick="switchTab('stream')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span class="tab-label">✦ Quotes</span>
+      </button>
+      <button class="tab-btn" id="tab-books" onclick="switchTab('books')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="tab-label">📖 Books</span>
+      </button>
+      <button class="tab-btn" id="tab-oasis" onclick="switchTab('oasis')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+        <span class="tab-label">✦ Oasis</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
