@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "2.6.0",
+    "version": "2.2.0",
     "note": "Edit this file to add quotes, book pages, letters, challenges or podcasts. No HTML changes needed."
   },
   "quotes": [
@@ -642,33 +642,33 @@
   "letters": [
     {
       "id": 1,
-      "title": "Counting Down",
-      "text": "Danna. I hope Russia is treating you well and you are having a great time. I was just looking at the calendar. June 26th is getting closer every single day. I really can't wait for this waiting period to be over so we can finally take the next step together. I love you.",
-      "date": "June 26 Target"
+      "title": "Andas, jag är här",
+      "text": "Hej zemer. Om du läser detta kanske du behöver en liten paus från världen just nu. Jag vill bara påminna dig om att du alltid är trygg med mig. Oavsett hur mycket det stormar runtomkring dig, eller hur mycket krav du känner, så är jag din lugna hamn. Du behöver inte bära allting själv. Släpp ner axlarna, ta ett djupt andetag och kom ihåg att vi fixar allting tillsammans. Jag älskar dig.",
+      "date": ""
     },
     {
       "id": 2,
-      "title": "Thinking About Us",
-      "text": "Hope you are having a beautiful day on your trip today. It is pretty quiet over here without you. I just wanted to drop a little note to remind you how excited I am to marry you. Enjoy your vacation and know that I am right here waiting for you.",
-      "date": "Thinking of You"
+      "title": "Du är otrolig",
+      "text": "Ibland glömmer du bort hur stark du faktiskt är, men jag ser det varje dag. Du tar dig igenom tuffa dagar, utmaningar och stress med en sån enorm kraft (och ibland drar du till och med till gymmet direkt efteråt haha). Glöm inte att vara snäll mot dig själv idag, för du gör ett helt fantastiskt jobb. Jag är så otroligt stolt över den kvinna du är.",
+      "date": ""
     },
     {
       "id": 3,
-      "title": "My Future Wife",
-      "text": "Just leaving a quick message to make you smile. The iddah feels long sometimes but you are so incredibly worth the wait. Have an amazing time in Russia and remember that you are my absolute favorite person in the whole world.",
-      "date": "Future Wife"
+      "title": "Bara så du vet...",
+      "text": "Det finns ingen speciell anledning till det här brevet, mer än att jag bara ville bara säga att du är det absolut finaste jag vet. Jag hoppas att den här lilla texten kan få dig att le mitt i vardagen, för ditt leende är det bästa jag vet. Saknar dig, tänker på dig och längtar tills vi hörs igen. Älskar dig Danna.",
+      "date": ""
     },
     {
       "id": 4,
-      "title": "Missing You",
-      "text": "I hope you are getting some good rest and exploring a lot today. I miss you a ton. Every day that passes brings us closer to being together properly and starting our life. Take care of yourself out there. I love you so much.",
-      "date": "Missing You"
+      "title": "Du är alltid tillräcklig för mig",
+      "text": "Hej Danna. Om du har en dag där hjärnspökena bråkar med dig, vill jag att du läser detta noga: Du är perfekt precis som du är. Du behöver aldrig prestera eller vara felfri för att jag ska älska dig. Jag älskar dig när du är glad, när du är ledsen, när du är trött och när du är fylld av energi. Luta dig mot mig när du inte orkar, jag står kvar här oavsett vad.",
+      "date": ""
     },
     {
       "id": 5,
-      "title": "Almost There",
-      "text": "Just a quick reminder that the 26th is right around the corner. Go have fun in Russia and enjoy the rest of your vacation to the fullest. We have a whole lifetime together waiting for us very soon. Miss you endlessly.",
-      "date": "Countdown"
+      "title": "Min favoritplats",
+      "text": "Min favoritplats i hela världen är inte en specifik plats, det är tiden när det bara är du och jag. Som våra sena kvällssamtal när världen har blivit tyst. Att bara få höra din röst, prata om allt och inget, och känna den där tryggheten med dig... det är guld värt för mig. Du är min favoritperson i hela världen. Längtar tills nästa stund vi får bara för oss själva.",
+      "date": ""
     }
   ],
   "microChallenges": [
