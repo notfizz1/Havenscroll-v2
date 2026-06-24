@@ -1,4 +1,4 @@
-const CACHE_NAME = 'havenscroll-cache-v2.5.0';
+const CACHE_NAME = 'havenscroll-cache-v2.6.0';
 
 // Everything the sanctuary needs to run with zero network
 const ASSETS_TO_CACHE = [
@@ -89,4 +89,6 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-   
+    self.skipWaiting();
+  }
+});

@@ -54,6 +54,7 @@ const HAPTIC_PROFILES = {
   exhale: [70, 60, 60, 70, 50, 80, 40, 90, 30, 100, 20] // long fading roll ~5s
 };
 function triggerHaptic(type) {
+  if (typeof soundSettings !== 'undefined' && soundSettings && !soundSettings.haptics) return;
   const pattern = HAPTIC_PROFILES[type];
   if (pattern === undefined) return;
   if ('vibrate' in navigator) { navigator.vibrate(pattern); return; }
@@ -122,7 +123,7 @@ function iosPlayPattern(pattern) {
   });
 }
 
-const HAPTIC_TARGET_SELECTOR = '.tab-btn, .filter-pill, .drawer-trigger, .star-btn, .challenge-btn, .empty-cta, .tap-zone-left, .tap-zone-right, .vibe-btn, .ep-btn, .header-btn, .stealth-btn, .play-pause-btn, .player-skip-btn, .player-speed-btn, .letter-item, .podcast-show-header, .grounding-control button, .prayer-tab, .prayer-row, .author-toggle-btn, .author-pill, .stone-mode-btn, .stone-color-btn, .stone-clear-btn, .sky-loc-btn, .reader-back-btn, .book-tile';
+const HAPTIC_TARGET_SELECTOR = '.tab-btn, .filter-pill, .drawer-trigger, .star-btn, .challenge-btn, .empty-cta, .tap-zone-left, .tap-zone-right, .vibe-btn, .ep-btn, .header-btn, .play-pause-btn, .player-skip-btn, .player-speed-btn, .letter-item, .podcast-show-header, .grounding-control button, .prayer-tab, .prayer-row, .author-toggle-btn, .author-pill, .stone-mode-btn, .stone-color-btn, .stone-clear-btn, .stone-skin-btn, .sky-loc-btn, .reader-back-btn, .book-tile, .calm-session-btn, .calm-exit-btn, .sound-preset-btn, .sound-toggle-row, .reader-settings-btn, .reader-opt-btn, .bookmark-btn, .tonight-action, .letter-audio-btn';
 
 function armNativeHapticTargets() {
   if (!IS_IOS) return;
@@ -168,7 +169,7 @@ function persistStats() { localStorage.setItem(STATS_KEY, JSON.stringify(stats))
 function awardXP(type) {
   stats.xp += (XP_AWARDS[type] || 0);
   persistStats();
-  if (document.getElementById('drawer-journey')?.classList.contains('expanded')) renderStats();
+  if (document.getElementById('drawer-journey')?.classList.contains('expanded')) { renderStats(); renderJourneyViz(); }
 }
 
 function levelFromXP(xp) { return Math.floor(Math.sqrt(xp / 60)) + 1; }
@@ -576,6 +577,7 @@ function renderBookshelf() {
     if (!book.cover) tile.querySelector('.book-tile-cover').classList.add('cover-fallback');
     grid.appendChild(tile);
   });
+  renderBookmarks();
 }
 
 async function openBook(id) {
@@ -603,7 +605,10 @@ async function openBook(id) {
   document.getElementById('book-author-tag').innerText = (book.author || 'Haven Library').toUpperCase();
   document.getElementById('bookshelf-view').style.display = 'none';
   document.getElementById('book-reader-view').style.display = 'flex';
+  const rsp = document.getElementById('reader-settings-panel'); if (rsp) rsp.classList.remove('open');
+  applyReaderPrefs();
   renderBook();
+  updateBookmarkBtn();
   rememberProgress();
 }
 
@@ -664,6 +669,8 @@ function turnPage(direction) {
     triggerHaptic('page');
   }
   document.getElementById('book-progress-text').innerText = 'Page ' + (currentBookPageIndex + 1) + ' of ' + currentBookPages.length;
+  playUISound('page');
+  updateBookmarkBtn();
   rememberProgress();
   clearTimeout(turnPage._t);
   turnPage._t = setTimeout(renderBook, 750); // rebuild 3-page window after the flip completes
@@ -694,7 +701,9 @@ function toggleSaveCard(event, id) {
   if (index === -1) {
     savedIds.push(id); actionMsg = "Saved to Oasis favorites";
     triggerHaptic('save');                       // double pulse profile
+    playUISound('save');
     stats.savedCount++; awardXP('save');          // hidden XP
+    if (document.getElementById('drawer-journey')?.classList.contains('expanded')) renderJourneyViz();
   } else {
     savedIds.splice(index, 1); actionMsg = "Removed from favorites"; triggerHaptic('tick');
     stats.savedCount = Math.max(0, stats.savedCount - 1); persistStats();
@@ -711,7 +720,7 @@ function switchTab(tab) {
   document.getElementById('tab-oasis').classList.toggle('active', tab === 'oasis');
   const topBar = document.getElementById('top-bar'); const feedContainer = document.getElementById('feed-container');
   const oasisView = document.getElementById('oasis-view'); const booksView = document.getElementById('books-view');
-  if (tab === 'oasis') { topBar.style.display = 'none'; feedContainer.style.display = 'none'; booksView.style.display = 'none'; oasisView.style.display = 'flex'; setupDailyChallenge(); renderSavedQuotesList(); renderLetters(); renderPodcasts(); renderStats(); }
+  if (tab === 'oasis') { topBar.style.display = 'none'; feedContainer.style.display = 'none'; booksView.style.display = 'none'; oasisView.style.display = 'flex'; setupDailyChallenge(); renderSavedQuotesList(); renderLetters(); renderPodcasts(); renderStats(); renderTonight(); renderSoundSettings(); }
   else if (tab === 'books') { topBar.style.display = 'none'; feedContainer.style.display = 'none'; oasisView.style.display = 'none'; booksView.style.display = 'flex'; showBooksTab(); }
   else { topBar.style.display = 'flex'; document.getElementById('filter-container').style.display = 'flex'; feedContainer.style.display = 'block'; oasisView.style.display = 'none'; booksView.style.display = 'none'; renderFeed(); }
 }
@@ -803,13 +812,17 @@ function shieldFade(target, seconds) {
 }
 
 async function startSoundShield(quiet) {
+  if (typeof soundSettings !== 'undefined' && soundSettings && !soundSettings.ambientLoop) {
+    if (!quiet) showToast('Ambient loop is off — turn it on in Sound & Feel');
+    return false;
+  }
   initShieldAudio();
   try {
     if (shieldCtx && shieldCtx.state === 'suspended') await shieldCtx.resume();
     if (shieldGain) shieldGain.gain.value = 0;
     await shieldAudio.play();
   } catch (e) { showToast('Tap the Sound Shield button to start audio'); return false; }
-  shieldFade(1, 1.5);
+  shieldFade((typeof soundSettings !== 'undefined' && soundSettings) ? soundSettings.master : 1, 1.5);
   isShieldPlaying = true;
   const shieldBtn = document.getElementById('sound-shield-btn'); const shieldBtnText = document.getElementById('sound-btn-text');
   if (shieldBtn) { shieldBtn.classList.add('active-shield'); shieldBtnText.innerText = 'Shield Active'; }
@@ -865,8 +878,10 @@ function killPacerEngine() { if (pacerIntervalId !== null) { clearInterval(pacer
    ========================================================================== */
 function toggleDrawer(id) {
   document.querySelectorAll('.oasis-drawer').forEach(drawer => { if (drawer.id === id) { drawer.classList.toggle('expanded'); triggerHaptic('tick'); } else { drawer.classList.remove('expanded'); } });
-  if (id === 'drawer-journey' && document.getElementById(id).classList.contains('expanded')) renderStats();
-  if (id === 'drawer-stone' && document.getElementById(id).classList.contains('expanded')) setTimeout(initWorryStone, 420);
+  const isOpen = document.getElementById(id).classList.contains('expanded');
+  if (id === 'drawer-journey' && isOpen) { renderStats(); setTimeout(renderJourneyViz, 420); }
+  if (id === 'drawer-stone' && isOpen) setTimeout(initWorryStone, 420);
+  if (id === 'drawer-sound' && isOpen) renderSoundSettings();
 }
 
 function setVibeSync(vibe) { const buttons = document.querySelectorAll('.vibe-btn'); if (activeVibe === vibe) { activeVibe = null; buttons.forEach(btn => btn.classList.remove('active')); showToast("Vibe sync cleared"); } else { activeVibe = vibe; buttons.forEach(btn => { if (btn.getAttribute('data-vibe') === vibe) btn.classList.add('active'); else btn.classList.remove('active'); }); showToast(`Feed customized to: ${vibe}`); } triggerHaptic('heavy'); renderFeed(); }
@@ -906,8 +921,24 @@ function renderLetters() {
   omerLetters.forEach(letter => { const item = document.createElement('div'); item.className = 'letter-item'; item.onclick = () => openLetter(letter.id); item.innerHTML = `<span class="letter-title">✉️ ${letter.title}</span><span class="letter-meta">${letter.date}</span>`; container.appendChild(item); });
 }
 
-function openLetter(id) { const letter = omerLetters.find(l => l.id === id); if (!letter) return; document.getElementById('letter-text-box').innerText = letter.text; document.getElementById('letter-modal').style.display = 'flex'; triggerHaptic('heavy'); stats.lettersOpened++; awardXP('letter'); }
-function closeLetter() { document.getElementById('letter-modal').style.display = 'none'; triggerHaptic('tick'); }
+function openLetter(id) {
+  const letter = omerLetters.find(l => l.id === id); if (!letter) return;
+  document.getElementById('letter-text-box').innerText = letter.text;
+  // Optional audio: show a play button only when the letter has an audio path
+  const wrap = document.getElementById('letter-audio-wrap');
+  const audio = document.getElementById('letter-audio');
+  stopLetterAudio();
+  if (letter.audio) {
+    if (audio) { audio.src = letter.audio; }
+    if (wrap) wrap.style.display = '';
+  } else {
+    if (wrap) wrap.style.display = 'none';
+    if (audio) audio.removeAttribute('src');
+  }
+  document.getElementById('letter-modal').style.display = 'flex';
+  triggerHaptic('heavy'); stats.lettersOpened++; awardXP('letter');
+}
+function closeLetter() { stopLetterAudio(); document.getElementById('letter-modal').style.display = 'none'; triggerHaptic('tick'); }
 
 /* ==========================================================================
    13. TACTILE WORRY STONE — canvas ripples + continuous soft haptics (Pillar 3)
@@ -942,6 +973,8 @@ function initWorryStone() {
   stoneCanvas.height = rect.height * dpr;
   stoneCtx = stoneCanvas.getContext('2d');
   stoneCtx.scale(dpr, dpr);
+  applyStoneSkinBg();
+  document.querySelectorAll('.stone-skin-btn').forEach(function (b) { b.classList.toggle('stone-skin-btn--active', b.dataset.skin === stoneSkin); });
   if (stoneInited) return;
   stoneInited = true;
 
@@ -957,7 +990,8 @@ function initWorryStone() {
       const x = clientX - r.left, y = clientY - r.top;
       stoneRipples.push({ x, y, radius: 4, alpha: 0.5 });
       const now = performance.now();
-      if (now - lastStoneHaptic > 70) { triggerHaptic('stone'); lastStoneHaptic = now; }
+      if (now - lastStoneHaptic > 70) { triggerHaptic((STONE_SKINS[stoneSkin] || STONE_SKINS.jade).hap); lastStoneHaptic = now; }
+      playUISound('tick');
       if (!stoneRafId) stoneLoop();
     }
   };
@@ -970,7 +1004,7 @@ function initWorryStone() {
     stoneRipples.push({ x, y, radius: 4, alpha: 0.5 });
     if (stoneRipples.length > 60) stoneRipples.shift();
     const now = performance.now();
-    if (now - lastStoneHaptic > 70) { triggerHaptic('stone'); lastStoneHaptic = now; }
+    if (now - lastStoneHaptic > 70) { triggerHaptic((STONE_SKINS[stoneSkin] || STONE_SKINS.jade).hap); lastStoneHaptic = now; }
     if (!stoneRafId) stoneLoop();
   };
 
@@ -1107,19 +1141,21 @@ function clearStoneDrawing() {
 function stoneLoop() {
   const r = stoneCanvas.getBoundingClientRect();
   stoneCtx.clearRect(0, 0, r.width, r.height);
+  const sk = STONE_SKINS[stoneSkin] || STONE_SKINS.jade;
+  const rp0 = sk.ripple, sh0 = sk.shimmer;
   stoneRipples.forEach(rp => {
     rp.radius += 1.6;
     rp.alpha *= 0.955;
-    // outer fluid ring
+    // outer fluid ring (skin tone)
     stoneCtx.beginPath();
     stoneCtx.arc(rp.x, rp.y, rp.radius, 0, Math.PI * 2);
-    stoneCtx.strokeStyle = `rgba(129, 199, 132, ${rp.alpha.toFixed(3)})`;
+    stoneCtx.strokeStyle = `rgba(${rp0[0]}, ${rp0[1]}, ${rp0[2]}, ${rp.alpha.toFixed(3)})`;
     stoneCtx.lineWidth = 1.5;
     stoneCtx.stroke();
-    // warm inner shimmer
+    // inner shimmer (skin tone)
     stoneCtx.beginPath();
     stoneCtx.arc(rp.x, rp.y, rp.radius * 0.55, 0, Math.PI * 2);
-    stoneCtx.strokeStyle = `rgba(255, 183, 77, ${(rp.alpha * 0.6).toFixed(3)})`;
+    stoneCtx.strokeStyle = `rgba(${sh0[0]}, ${sh0[1]}, ${sh0[2]}, ${(rp.alpha * 0.6).toFixed(3)})`;
     stoneCtx.lineWidth = 1;
     stoneCtx.stroke();
   });
@@ -1278,7 +1314,7 @@ async function downloadPodcast(url, title) {
 }
 
 /* ==========================================================================
-   15. AMBIENT STARFIELD & STEALTH MODE
+   15. AMBIENT STARFIELD
    ========================================================================== */
 async function toggleAmbientStarfield(activate) {
   const overlay = document.getElementById('ambient-starfield-overlay'); isAmbientActive = activate;
@@ -1314,9 +1350,6 @@ function runStarfieldLoop() {
   });
   animationFrameId = requestAnimationFrame(runStarfieldLoop);
 }
-
-function activateStealthMode() { document.getElementById('stealth-overlay').style.display = 'flex'; killPacerEngine(); triggerHaptic('heavy'); }
-function handleStealthScreenTap(event) { const triggerElement = document.getElementById('stealth-exit-trigger'); if (event.target === triggerElement || triggerElement.contains(event.target)) { document.getElementById('stealth-overlay').style.display = 'none'; triggerHaptic('heavy'); showToast("Sanctuary restored"); } }
 
 /* ==========================================================================
    16. INTERSECTION OBSERVER — feed paging + lazy video play/pause
@@ -1747,6 +1780,302 @@ function renderPrayerUI() {
   }
 }
 
+/* ==========================================================================
+   20. SOUND & FEEL SETTINGS — local mixer / presets, haptic + UI-sound gates
+   Nothing autostarts loudly. All choices persist in localStorage.
+   ========================================================================== */
+const SOUND_KEY = 'haven_sound_v1';
+const SOUND_PRESETS = {
+  sleep:   { master: 0.32, ambientLoop: true,  uiSounds: false, haptics: false },
+  focus:   { master: 0.45, ambientLoop: true,  uiSounds: false, haptics: true  },
+  panic:   { master: 0.30, ambientLoop: true,  uiSounds: false, haptics: true  },
+  reading: { master: 0.40, ambientLoop: false, uiSounds: true,  haptics: false }
+};
+function loadSoundSettings() {
+  const d = { master: 0.7, ambientLoop: true, uiSounds: false, haptics: true, preset: null };
+  try { return Object.assign(d, JSON.parse(localStorage.getItem(SOUND_KEY)) || {}); }
+  catch (e) { return d; }
+}
+let soundSettings = loadSoundSettings();
+function persistSoundSettings() { try { localStorage.setItem(SOUND_KEY, JSON.stringify(soundSettings)); } catch (e) {} }
+function setMasterVolume(v) {
+  soundSettings.master = Math.max(0, Math.min(1, (parseFloat(v) || 0) / 100));
+  soundSettings.preset = null; persistSoundSettings();
+  if (isShieldPlaying) shieldFade(soundSettings.master, 0.3);
+}
+function toggleSoundSetting(key) {
+  soundSettings[key] = !soundSettings[key]; soundSettings.preset = null; persistSoundSettings();
+  if (key === 'ambientLoop' && !soundSettings.ambientLoop && isShieldPlaying) stopSoundShield(true);
+  renderSoundSettings(); triggerHaptic('tick');
+}
+function applySoundPreset(name) {
+  const p = SOUND_PRESETS[name]; if (!p) return;
+  Object.assign(soundSettings, p, { preset: name }); persistSoundSettings();
+  if (soundSettings.ambientLoop) { if (!isShieldPlaying) startSoundShield(true); else shieldFade(soundSettings.master, 0.6); }
+  else if (isShieldPlaying) { stopSoundShield(true); }
+  renderSoundSettings(); triggerHaptic('tick');
+  const label = name === 'panic' ? 'Panic Reset' : name.charAt(0).toUpperCase() + name.slice(1);
+  showToast('Sound preset: ' + label);
+}
+function silenceEverything() {
+  if (isShieldPlaying) stopSoundShield(true);
+  try { closePodcastPlayer(); } catch (e) {}
+  try { stopLetterAudio(); } catch (e) {}
+  showToast('Everything is quiet now'); triggerHaptic('tick');
+}
+function renderSoundSettings() {
+  const master = document.getElementById('sound-master');
+  if (master) master.value = Math.round(soundSettings.master * 100);
+  document.querySelectorAll('#sound-toggles .sound-toggle-row').forEach(function (row) { row.classList.toggle('on', !!soundSettings[row.dataset.key]); });
+  document.querySelectorAll('#sound-presets .sound-preset-btn').forEach(function (btn) { btn.classList.toggle('active', btn.dataset.preset === soundSettings.preset); });
+}
+let _uiCtx = null;
+function playUISound(kind) {
+  if (!soundSettings.uiSounds) return;
+  try {
+    _uiCtx = _uiCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (_uiCtx.state === 'suspended') _uiCtx.resume();
+    const o = _uiCtx.createOscillator(), g = _uiCtx.createGain(), now = _uiCtx.currentTime;
+    o.type = 'sine'; o.frequency.value = kind === 'page' ? 320 : kind === 'save' ? 560 : 440;
+    const vol = 0.045 * soundSettings.master;
+    g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(vol, now + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+    o.connect(g); g.connect(_uiCtx.destination); o.start(now); o.stop(now + 0.16);
+  } catch (e) {}
+}
+
+/* ==========================================================================
+   21. GUIDED CALM SESSION — reuses pacer cadence, grounding, quotes, audio
+   Offline, exitable any time, no medical claims, respects reduced motion.
+   ========================================================================== */
+let calmTimers = [], calmShieldAuto = false, calmActive = false, calmBreathCount = 0;
+const CALM_CYCLES = 4;
+function calmClear() { calmTimers.forEach(clearTimeout); calmTimers = []; }
+function calmAt(ms, fn) { calmTimers.push(setTimeout(fn, ms)); }
+function calmProgress(pct) { const f = document.getElementById('calm-progress-fill'); if (f) f.style.width = pct + '%'; }
+async function startCalmSession() {
+  const overlay = document.getElementById('calm-overlay'); if (!overlay) return;
+  calmActive = true; calmBreathCount = 0;
+  overlay.classList.add('open'); overlay.setAttribute('aria-hidden', 'false');
+  killPacerEngine(); triggerHaptic('heavy');
+  const cue = document.getElementById('calm-cue'), sub = document.getElementById('calm-sub');
+  const actions = document.getElementById('calm-actions'), breath = document.getElementById('calm-breath');
+  actions.style.display = 'none'; actions.innerHTML = '';
+  breath.style.display = ''; breath.className = 'calm-breath';
+  cue.textContent = 'Settling in…'; cue.style.color = '#FFF';
+  sub.textContent = 'Find a comfortable position. There is nothing to do but be here.';
+  calmProgress(5);
+  if (soundSettings.ambientLoop && !isShieldPlaying) { calmShieldAuto = await startSoundShield(true); } else { calmShieldAuto = false; }
+  calmAt(2600, calmRunBreathing);
+}
+function calmRunBreathing() {
+  if (!calmActive) return;
+  const cue = document.getElementById('calm-cue'), sub = document.getElementById('calm-sub'), breath = document.getElementById('calm-breath');
+  const INH = 4000, HOLD = 2000, EXH = 6000, CYCLE = INH + HOLD + EXH;
+  function doCycle() {
+    if (!calmActive) return;
+    calmBreathCount++; sub.textContent = 'Breath ' + calmBreathCount + ' of ' + CALM_CYCLES;
+    breath.className = 'calm-breath inhale'; cue.textContent = 'Breathe in…'; cue.style.color = 'var(--accent-sage)'; triggerHaptic('inhale');
+    calmAt(INH, function () { if (!calmActive) return; breath.className = 'calm-breath hold'; cue.textContent = 'Hold gently…'; cue.style.color = '#AED581'; });
+    calmAt(INH + HOLD, function () { if (!calmActive) return; breath.className = 'calm-breath exhale'; cue.textContent = 'Breathe out…'; cue.style.color = '#818CF8'; triggerHaptic('exhale'); stats.breathCycles = (stats.breathCycles || 0) + 1; awardXP('breath'); });
+  }
+  for (let i = 0; i < CALM_CYCLES; i++) {
+    calmAt(i * CYCLE, doCycle);
+    calmAt(i * CYCLE + 10, (function (ii) { return function () { calmProgress(8 + (ii / CALM_CYCLES) * 50); }; })(i));
+  }
+  calmAt(CALM_CYCLES * CYCLE, calmRunGrounding);
+}
+function calmRunGrounding() {
+  if (!calmActive) return;
+  const cue = document.getElementById('calm-cue'), sub = document.getElementById('calm-sub'), breath = document.getElementById('calm-breath');
+  breath.className = 'calm-breath'; calmProgress(66);
+  const g = (groundingSteps && groundingSteps.length) ? groundingSteps[0] : { inst: 'Notice three things you can feel touching your skin right now.' };
+  cue.textContent = 'Grounding'; cue.style.color = '#FFF'; sub.textContent = g.inst; triggerHaptic('wave');
+  calmAt(11000, calmRunClosing);
+}
+function calmRunClosing() {
+  if (!calmActive) return;
+  const cue = document.getElementById('calm-cue'), sub = document.getElementById('calm-sub');
+  const actions = document.getElementById('calm-actions'), breath = document.getElementById('calm-breath');
+  breath.style.display = 'none'; calmProgress(100);
+  const calmPool = baseCards.filter(function (c) { return !c.isPacer && c.category === 'Inner Sanctuary' && c.text.length < 240; });
+  let chosen = calmPool.length ? calmPool[new Date().getDate() % calmPool.length] : baseCards.find(function (c) { return !c.isPacer; });
+  cue.textContent = 'One last thought'; cue.style.color = '#FFF';
+  if (chosen) { sub.innerHTML = '<span class="calm-quote">"' + escapeHTML(chosen.text) + '"</span><span class="calm-quote-by">' + escapeHTML(chosen.author || '') + '</span>'; }
+  else { sub.textContent = 'You showed up for yourself. That is enough.'; }
+  actions.style.display = 'flex';
+  actions.innerHTML = '<button class="primary" onclick="saveCalmSession()">Save this session</button><button onclick="endCalmSession()">Done</button>';
+  triggerHaptic('save');
+}
+function saveCalmSession() {
+  try { const k = 'haven_calm_sessions_v1'; const arr = JSON.parse(localStorage.getItem(k) || '[]'); arr.push({ ts: Date.now(), breaths: calmBreathCount }); localStorage.setItem(k, JSON.stringify(arr)); } catch (e) {}
+  awardXP('grounding'); showToast('Calm session saved'); endCalmSession();
+}
+function endCalmSession() {
+  calmActive = false; calmClear();
+  const overlay = document.getElementById('calm-overlay');
+  if (overlay) { overlay.classList.remove('open'); overlay.setAttribute('aria-hidden', 'true'); }
+  if (calmShieldAuto) { stopSoundShield(true); calmShieldAuto = false; }
+  triggerHaptic('tick');
+  const jd = document.getElementById('drawer-journey');
+  if (jd && jd.classList.contains('expanded')) { renderStats(); renderJourneyViz(); }
+  renderTonight();
+}
+
+/* ==========================================================================
+   22. TONIGHT — gentle daily landing summary (fully offline, derived locally)
+   ========================================================================== */
+function scrollOasisTo(id) { const el = document.getElementById(id); if (el) setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80); }
+function tonightGoTask() { const el = document.querySelector('.challenge-panel'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+function renderTonight() {
+  const panel = document.getElementById('tonight-panel'); if (!panel) return;
+  if (!baseCards || !baseCards.length) { panel.innerHTML = ''; return; }
+  const now = new Date(), h = now.getHours();
+  const greeting = h < 5 ? 'Late night' : h < 11 ? 'This morning' : h < 17 ? 'This afternoon' : 'Tonight';
+  let moonInfo = null; try { moonInfo = getMoonPhase(now); } catch (e) {}
+  const dayIdx = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 864e5);
+  const pool = baseCards.filter(function (c) { return !c.isPacer; });
+  const sanct = pool.filter(function (c) { return c.category === 'Inner Sanctuary'; });
+  const qpool = sanct.length ? sanct : pool;
+  const q = qpool.length ? qpool[dayIdx % qpool.length] : null;
+  let task = '';
+  try { let idx = parseInt(localStorage.getItem('havenscroll_challenge_index'), 10); if (isNaN(idx) && microChallenges.length) idx = dayIdx % microChallenges.length; task = microChallenges[idx] || microChallenges[0] || ''; } catch (e) { task = microChallenges[0] || ''; }
+  const taskDone = localStorage.getItem('havenscroll_challenge_completed') === 'true';
+  let prayerTxt = '0 / 5 prayed today';
+  try { const saved = _prLoad(), dk = _prDK(now); const loc = _prSelLoc || (_prRussiaHidden() ? 'norway' : 'russia'); const done = (saved[dk] && saved[dk][loc]) ? Object.values(saved[dk][loc]).filter(Boolean).length : 0; prayerTxt = done + ' / 5 prayed today'; } catch (e) {}
+  const rec = (h >= 22 || h < 6) ? 'sleep' : (h < 17) ? 'focus' : 'reading';
+  const recName = rec.charAt(0).toUpperCase() + rec.slice(1);
+  function row(ico, label, val, action) { return '<div class="tonight-row"><span class="tonight-row-ico">' + ico + '</span><div class="tonight-row-main"><div class="tonight-row-label">' + label + '</div><div class="tonight-row-val">' + escapeHTML(val) + '</div></div>' + (action || '') + '</div>'; }
+  let moonHTML = moonInfo
+    ? '<canvas class="tonight-moon" id="tonight-moon-canvas" width="68" height="68"></canvas><div><div class="tonight-kicker">' + greeting + '</div><div class="tonight-phase">' + moonInfo.name + ' · ' + moonInfo.illum + '%</div></div>'
+    : '<div><div class="tonight-kicker">' + greeting + '</div></div>';
+  let html = '<div class="tonight-head">' + moonHTML + '</div>';
+  if (q) { const qt = q.text.length > 200 ? q.text.slice(0, 197) + '…' : q.text; html += '<p class="tonight-quote">"' + escapeHTML(qt) + '"</p><p class="tonight-quote-by">' + escapeHTML(q.author || '') + '</p>'; }
+  html += '<div class="tonight-rows">';
+  if (task) { const ts = task.length > 70 ? task.slice(0, 67) + '…' : task; html += row('✓', taskDone ? 'Micro-task — done' : 'One micro-task', ts, taskDone ? '' : '<button class="tonight-action" onclick="tonightGoTask()">Do it</button>'); }
+  html += row('☽', 'Prayer', prayerTxt, '<button class="tonight-action" onclick="scrollOasisTo(\'drawer-prayers\')">Open</button>');
+  html += row('♪', 'Recommended sound', recName, '<button class="tonight-action" onclick="applySoundPreset(\'' + rec + '\')">Play</button>');
+  html += '</div>';
+  panel.innerHTML = html;
+  if (moonInfo) { const c = document.getElementById('tonight-moon-canvas'); if (c) { try { renderMoonCanvas(c, moonInfo.phase, 0); } catch (e) {} } }
+}
+
+/* ==========================================================================
+   23. WORRY STONE SKINS — Jade / Obsidian / Moonstone / Amber
+   ========================================================================== */
+const STONE_SKINS = {
+  jade:      { bg: 'radial-gradient(ellipse at 50% 42%, #2a7d57 0%, #143f2d 62%, #081410 100%)', ripple: [126, 214, 160], shimmer: [255, 221, 150], hap: 'stone', tone: 233 },
+  obsidian:  { bg: 'radial-gradient(ellipse at 50% 42%, #2e333f 0%, #14171f 62%, #05060a 100%)', ripple: [165, 172, 190], shimmer: [120, 128, 150], hap: 'tick',  tone: 174 },
+  moonstone: { bg: 'radial-gradient(ellipse at 50% 42%, #cdd7ee 0%, #7e8cb0 55%, #2b3550 100%)', ripple: [240, 245, 255], shimmer: [180, 200, 240], hap: 'wave',  tone: 392 },
+  amber:     { bg: 'radial-gradient(ellipse at 50% 42%, #e0913a 0%, #8a4f18 60%, #2a1607 100%)', ripple: [255, 196, 110], shimmer: [255, 150, 60],  hap: 'stone', tone: 311 }
+};
+let stoneSkin = (function () { try { return localStorage.getItem('haven_stone_skin_v1') || 'jade'; } catch (e) { return 'jade'; } })();
+function applyStoneSkinBg() { const c = document.getElementById('worry-stone-canvas'); if (c) c.style.background = (STONE_SKINS[stoneSkin] || STONE_SKINS.jade).bg; }
+function setStoneSkin(name) {
+  if (!STONE_SKINS[name]) return;
+  stoneSkin = name; try { localStorage.setItem('haven_stone_skin_v1', name); } catch (e) {}
+  document.querySelectorAll('.stone-skin-btn').forEach(function (b) { b.classList.toggle('stone-skin-btn--active', b.dataset.skin === name); });
+  applyStoneSkinBg();
+  if (stoneCtx && stoneCanvas) { const r = stoneCanvas.getBoundingClientRect(); stoneCtx.clearRect(0, 0, r.width, r.height); stoneRipples = []; }
+  if (stoneMode === 'spiro') newSpirograph();
+  triggerHaptic(STONE_SKINS[name].hap); playUISound('tick');
+}
+
+/* ==========================================================================
+   24. JOURNEY VISUAL — a quiet sky rendered from local stats only
+   ========================================================================== */
+function _seedRand(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function renderJourneyViz() {
+  const canvas = document.getElementById('journey-canvas'); if (!canvas) return;
+  const rect = canvas.getBoundingClientRect(); if (rect.width === 0) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  const c = canvas.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = rect.width, Hh = rect.height; c.clearRect(0, 0, W, Hh);
+  const savedN = Math.max(0, stats.savedCount || 0), breaths = stats.breathCycles || 0, pages = stats.pagesTurned || 0;
+  let prayers = 0;
+  try { const d = _prLoad(); Object.values(d).forEach(function (day) { Object.values(day).forEach(function (loc) { prayers += Object.values(loc).filter(Boolean).length; }); }); } catch (e) {}
+  const ribbonY = Hh * 0.74, prog = Math.min(1, pages / 60);
+  c.beginPath(); c.moveTo(0, ribbonY);
+  for (let x = 0; x <= W; x += 5) { c.lineTo(x, ribbonY + Math.sin(x / 34 + 0.5) * 10 * prog); }
+  const rg = c.createLinearGradient(0, 0, W, 0);
+  rg.addColorStop(0, 'rgba(129,199,132,0)'); rg.addColorStop(0.5, 'rgba(129,199,132,' + (0.2 + 0.4 * prog).toFixed(2) + ')'); rg.addColorStop(1, 'rgba(255,183,77,0)');
+  c.strokeStyle = rg; c.lineWidth = 2; c.stroke();
+  const cx = W * 0.5, cy = Hh * 0.4, rings = Math.min(6, Math.floor(breaths / 4));
+  for (let i = 1; i <= rings; i++) { c.beginPath(); c.arc(cx, cy, 8 + i * 8, 0, Math.PI * 2); c.strokeStyle = 'rgba(129,140,248,' + Math.max(0.05, 0.34 - i * 0.045).toFixed(3) + ')'; c.lineWidth = 1.1; c.stroke(); }
+  const mg = c.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 9); mg.addColorStop(0, 'rgba(255,245,210,0.9)'); mg.addColorStop(1, 'rgba(255,210,140,0.12)');
+  c.beginPath(); c.arc(cx, cy, 7, 0, Math.PI * 2); c.fillStyle = mg; c.fill();
+  const stars = Math.min(44, savedN), rnd = _seedRand(1337);
+  for (let i = 0; i < stars; i++) { const x = rnd() * W, y = rnd() * (Hh * 0.6) + 4, s = 0.6 + rnd() * 1.6, a = 0.5 + rnd() * 0.5; c.beginPath(); c.arc(x, y, s, 0, Math.PI * 2); c.fillStyle = 'rgba(255,' + (230 + Math.floor(rnd() * 25)) + ',' + (200 + Math.floor(rnd() * 40)) + ',' + a.toFixed(2) + ')'; c.fill(); }
+  const lights = Math.min(14, prayers);
+  for (let i = 0; i < lights; i++) { const x = (i + 0.5) / Math.max(1, lights) * W, y = ribbonY - 3 + Math.sin(x / 34 + 0.5) * 10 * prog; const lg = c.createRadialGradient(x, y, 0, x, y, 5); lg.addColorStop(0, 'rgba(255,200,120,0.9)'); lg.addColorStop(1, 'rgba(255,200,120,0)'); c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2); c.fillStyle = lg; c.fill(); }
+  const cap = document.getElementById('journey-viz-caption');
+  if (cap) { cap.textContent = (savedN + breaths + pages + prayers === 0) ? 'Your sky will fill as you spend time here.' : (stars + ' stars · ' + rings + ' breath rings · ' + lights + ' lights'); }
+}
+
+/* ==========================================================================
+   25. READER PREFERENCES + BOOKMARKS (per device, offline)
+   ========================================================================== */
+const READER_PREFS_KEY = 'haven_reader_prefs_v1';
+function loadReaderPrefs() { const d = { fontStep: 0, lineStep: 0, theme: 'dark', dimmer: 0 }; try { return Object.assign(d, JSON.parse(localStorage.getItem(READER_PREFS_KEY)) || {}); } catch (e) { return d; } }
+let readerPrefs = loadReaderPrefs();
+function persistReaderPrefs() { try { localStorage.setItem(READER_PREFS_KEY, JSON.stringify(readerPrefs)); } catch (e) {} }
+function applyReaderPrefs() {
+  const v = document.getElementById('book-reader-view'); if (!v) return;
+  v.style.setProperty('--rd-font', (0.92 + readerPrefs.fontStep * 0.06).toFixed(3) + 'rem');
+  v.style.setProperty('--rd-line', (1.8 + readerPrefs.lineStep * 0.12).toFixed(3));
+  v.classList.remove('reader-dark', 'reader-sepia', 'reader-moon'); v.classList.add('reader-' + readerPrefs.theme);
+  const ov = document.getElementById('reader-dimmer-overlay'); if (ov) ov.style.opacity = (readerPrefs.dimmer / 100).toFixed(2);
+  const dm = document.getElementById('reader-dimmer'); if (dm) dm.value = readerPrefs.dimmer;
+  document.querySelectorAll('#reader-settings-panel .reader-opt-btn[data-theme]').forEach(function (b) { b.classList.toggle('active', b.dataset.theme === readerPrefs.theme); });
+}
+function adjustReaderFont(d) { readerPrefs.fontStep = Math.max(-2, Math.min(5, readerPrefs.fontStep + d)); persistReaderPrefs(); applyReaderPrefs(); triggerHaptic('tick'); }
+function adjustReaderLine(d) { readerPrefs.lineStep = Math.max(-2, Math.min(4, readerPrefs.lineStep + d)); persistReaderPrefs(); applyReaderPrefs(); triggerHaptic('tick'); }
+function setReaderTheme(t) { readerPrefs.theme = t; persistReaderPrefs(); applyReaderPrefs(); triggerHaptic('tick'); }
+function setReaderDimmer(v) { readerPrefs.dimmer = parseInt(v, 10) || 0; persistReaderPrefs(); const ov = document.getElementById('reader-dimmer-overlay'); if (ov) ov.style.opacity = (readerPrefs.dimmer / 100).toFixed(2); }
+function toggleReaderSettings() { const p = document.getElementById('reader-settings-panel'); if (p) { p.classList.toggle('open'); triggerHaptic('tick'); } }
+
+const BOOKMARKS_KEY = 'haven_bookmarks_v1';
+function loadBookmarks() { try { return JSON.parse(localStorage.getItem(BOOKMARKS_KEY)) || []; } catch (e) { return []; } }
+function saveBookmarks(b) { try { localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(b)); } catch (e) {} }
+function currentPageSnippet() { try { return (currentBookPages[currentBookPageIndex] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60); } catch (e) { return ''; } }
+function isBookmarked() { if (!currentBook) return false; return loadBookmarks().some(function (b) { return b.bookId === currentBook.id && b.page === currentBookPageIndex; }); }
+function updateBookmarkBtn() { const b = document.getElementById('reader-bookmark-btn'); if (b) b.classList.toggle('marked', isBookmarked()); }
+function toggleBookmark() {
+  if (!currentBook) return;
+  const arr = loadBookmarks();
+  const i = arr.findIndex(function (b) { return b.bookId === currentBook.id && b.page === currentBookPageIndex; });
+  if (i === -1) { arr.push({ bookId: currentBook.id, title: currentBook.title, page: currentBookPageIndex, total: currentBookPages.length, snippet: currentPageSnippet(), ts: Date.now() }); showToast('Passage bookmarked'); triggerHaptic('save'); }
+  else { arr.splice(i, 1); showToast('Bookmark removed'); triggerHaptic('tick'); }
+  saveBookmarks(arr); updateBookmarkBtn();
+}
+function renderBookmarks() {
+  const slot = document.getElementById('bookmarks-slot'); if (!slot) return;
+  const arr = loadBookmarks(); if (!arr.length) { slot.innerHTML = ''; return; }
+  let html = '<div class="bookmark-strip"><span class="bookmark-strip-label">Saved passages</span>';
+  for (let i = arr.length - 1; i >= 0; i--) { const b = arr[i]; html += '<div class="bookmark-chip" onclick="openBookmark(' + i + ')"><span class="bookmark-chip-text">' + escapeHTML(b.snippet || b.title || 'Passage') + '…</span><button class="bookmark-chip-x" onclick="event.stopPropagation(); removeBookmark(' + i + ')">×</button></div>'; }
+  html += '</div>'; slot.innerHTML = html;
+}
+function openBookmark(i) {
+  const arr = loadBookmarks(), b = arr[i]; if (!b) return;
+  Promise.resolve(openBook(b.bookId)).then(function () { if (currentBookPages && currentBookPages.length) { currentBookPageIndex = Math.min(b.page, currentBookPages.length - 1); renderBook(); rememberProgress(); updateBookmarkBtn(); } });
+}
+function removeBookmark(i) { const arr = loadBookmarks(); arr.splice(i, 1); saveBookmarks(arr); renderBookmarks(); updateBookmarkBtn(); triggerHaptic('tick'); }
+
+/* ==========================================================================
+   26. OPTIONAL AUDIO LETTERS — play button appears only when letter.audio set
+   ========================================================================== */
+function toggleLetterAudio() {
+  const audio = document.getElementById('letter-audio'); if (!audio || !audio.getAttribute('src')) return;
+  if (audio.paused) { audio.play().catch(function () { showToast('Could not play audio'); }); } else { audio.pause(); }
+  triggerHaptic('tick');
+}
+function stopLetterAudio() { const audio = document.getElementById('letter-audio'); if (audio) { try { audio.pause(); audio.currentTime = 0; } catch (e) {} } _setLetterAudioUI(false); }
+function _setLetterAudioUI(playing) {
+  const ic = document.getElementById('letter-audio-icon'), lb = document.getElementById('letter-audio-label');
+  if (ic) ic.textContent = playing ? '❚❚' : '▶';
+  if (lb) lb.textContent = playing ? 'Pause' : "Play in Omer's voice";
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   applyDaypartTheme();
   setInterval(applyDaypartTheme, 10 * 60 * 1000);
@@ -1756,8 +2085,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderFeed();
   renderPrayerUI();
   initSameSky();
+  renderSoundSettings();
+  applyReaderPrefs();
+  const _la = document.getElementById('letter-audio');
+  if (_la) {
+    _la.addEventListener('play', () => _setLetterAudioUI(true));
+    _la.addEventListener('pause', () => _setLetterAudioUI(false));
+    _la.addEventListener('ended', () => { _setLetterAudioUI(false); _la.currentTime = 0; });
+  }
   registerAndWatchSW();
   setTimeout(checkForVersionUpdate, 3000);
   setInterval(checkForVersionUpdate, 5 * 60 * 1000);
 });
-/* HavenScroll v2.5.0 */
+/* HavenScroll v2.6.0 */
