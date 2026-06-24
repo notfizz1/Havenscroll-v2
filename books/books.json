@@ -18,6 +18,14 @@
       "cover": ""
     },
     {
+      "id": "shariah",
+      "title": "Shari'ah: The Islamic Law",
+      "author": "Abdur Rahman I. Doi",
+      "type": "txt",
+      "txt": "./books/shariah.txt",
+      "cover": ""
+    },
+    {
       "id": "alice-in-wonderland",
       "title": "Alice's Adventures in Wonderland",
       "author": "Lewis Carroll",
