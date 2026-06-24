@@ -11,12 +11,12 @@
 </head>
 <body>
 
-  <!-- AMBIENT STARFIELD LAYOUT -->
+  <!-- AMBIENT MODE LAYOUT -->
   <div id="ambient-starfield-overlay">
     <canvas id="starfield-canvas"></canvas>
-    <div class="ambient-header"><div class="brand-logo" style="font-size:1.15rem;">Haven<span>Scroll</span></div><button class="ambient-exit" onclick="toggleAmbientStarfield(false)">Exit Ambient Mode</button></div>
-    <div class="ambient-pacer-indicator"><div class="ambient-pacer-text" id="ambient-pacer-label">Breathe deeply...</div></div>
-    <div class="ambient-footer">Forest Ambience & Starfield Active</div>
+    <div class="ambient-header"><div class="brand-logo" style="font-size:1.05rem;">Haven<span>Scroll</span></div><button class="ambient-exit" onclick="toggleAmbientStarfield(false)">Exit</button></div>
+    <div class="ambient-phase" id="ambient-phase">Inhale</div>
+    <div class="ambient-footer">the same sky</div>
   </div>
 
   <!-- INTERACTIVE ENVELOPE MODAL -->
@@ -215,8 +215,8 @@
       </div>
 
       <div class="oasis-drawer" id="drawer-ambient">
-        <button class="drawer-trigger" onclick="toggleDrawer('drawer-ambient')"><span>🌌 Starfield Ambient Mode</span><span class="drawer-arrow">▶</span></button>
-        <div class="drawer-content"><p class="drawer-note">Removes all text and turns the screen into a slow-moving, breathing cosmos. The stars swell and contract in tune with an 8.7-second physiological-sigh breathing cycle.</p><button class="empty-cta" onclick="toggleAmbientStarfield(true)" style="width:100%; border-radius:8px;">Launch Ambient Starfield</button></div>
+        <button class="drawer-trigger" onclick="toggleDrawer('drawer-ambient')"><span>🌙 Ambient Mode</span><span class="drawer-arrow">▶</span></button>
+        <div class="drawer-content"><p class="drawer-note">A quiet full-screen space — a single ring of light that widens as you breathe in and settles as you breathe out, over a field of faint, fading stars.</p><button class="empty-cta" onclick="toggleAmbientStarfield(true)" style="width:100%; border-radius:8px;">Enter Ambient Mode</button></div>
       </div>
 
       <!-- ░░░ CONNECT ░░░ -->

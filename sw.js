@@ -1,4 +1,4 @@
-const CACHE_NAME = 'havenscroll-cache-v2.6.0';
+const CACHE_NAME = 'havenscroll-cache-v2.6.2';
 
 // Everything the sanctuary needs to run with zero network
 const ASSETS_TO_CACHE = [
@@ -12,6 +12,8 @@ const ASSETS_TO_CACHE = [
   './fonts/Inter-Italic-Variable.ttf',
   './audio/splash-sound.mp3',
   './audio/haven-ambient.mp3',
+  './audio/focus-drone.mp3',
+  './audio/panic-ocean.mp3',
   './books/books.json',
   './video/sanctuary-bg.mp4',
   './video/neuro-bg.mp4',

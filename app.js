@@ -789,10 +789,11 @@ function scrollToPacerCard() { if (currentTab !== 'stream') switchTab('stream');
    (plain playback fallback). Starts only on user tap — iOS autoplay safe.
    ========================================================================== */
 let shieldAudio = null, shieldCtx = null, shieldGain = null;
+let currentAmbientSrc = './audio/haven-ambient.mp3';   // swapped per sound preset
 
 function initShieldAudio() {
   if (shieldAudio) return;
-  shieldAudio = new Audio('./audio/haven-ambient.mp3');
+  shieldAudio = new Audio(currentAmbientSrc);
   shieldAudio.loop = true;
   shieldAudio.preload = 'auto';
   try {
@@ -801,6 +802,25 @@ function initShieldAudio() {
     shieldGain = shieldCtx.createGain();
     srcNode.connect(shieldGain); shieldGain.connect(shieldCtx.destination);
   } catch (e) { shieldCtx = null; shieldGain = null; }
+}
+
+// Swap the looping ambient track. If a track is already playing, fade it out,
+// switch source, then fade the new one back up — so presets never click or jump.
+function setAmbientPreset(src) {
+  if (!src) return;
+  currentAmbientSrc = src;
+  if (!shieldAudio) return;                          // first play will load this src in initShieldAudio
+  const norm = src.replace(/^\.\//, '');
+  if (shieldAudio.src && shieldAudio.src.indexOf(norm) !== -1) return;  // already this track
+  if (isShieldPlaying && shieldGain) {
+    shieldFade(0, 0.35);
+    setTimeout(function () {
+      try { shieldAudio.src = src; shieldAudio.load(); } catch (e) {}
+      shieldAudio.play().then(function () { shieldFade(soundSettings.master, 0.9); }).catch(function () {});
+    }, 380);
+  } else {
+    try { shieldAudio.src = src; shieldAudio.load(); } catch (e) {}
+  }
 }
 
 function shieldFade(target, seconds) {
@@ -1327,27 +1347,88 @@ async function toggleAmbientStarfield(activate) {
     if (ambientAutoStarted) { stopSoundShield(true); ambientAutoStarted = false; }
   }
 }
+/* --- PREMIUM AMBIENT: one breathing ring of champagne light, paced by a fine
+   progress arc, over a field of very faint stars that fade in and out. Replaces
+   the old hyperspace warp. Breath cadence: inhale 4s · hold 2s · exhale 6s. --- */
+let ambW = 0, ambH = 0, ambCx = 0, ambCy = 0, ambBaseR = 0, ambPrev = 0, ambLastPhase = '', _ambResizeBound = false;
+
+function _ambEase(x) { return x * x * (3 - 2 * x); }
+function _ambSpawnStar(s, init) {
+  s.x = Math.random() * ambW; s.y = Math.random() * ambH;
+  s.r = Math.random() * 0.7 + 0.3; s.max = Math.random() * 0.10 + 0.04;
+  s.life = Math.random() * 5200 + 3600; s.age = init ? Math.random() * s.life : 0;
+}
+
 function initStarfield() {
-  canvas = document.getElementById('starfield-canvas'); ctx = canvas.getContext('2d'); resizeCanvas(); window.addEventListener('resize', resizeCanvas);
-  stars = []; const starCount = 120;
-  for (let i = 0; i < starCount; i++) { stars.push({ x: Math.random() * canvas.width - canvas.width / 2, y: Math.random() * canvas.height - canvas.height / 2, z: Math.random() * canvas.width, color: Math.random() > 0.3 ? '#81C784' : '#FFB74D' }); }
+  canvas = document.getElementById('starfield-canvas'); ctx = canvas.getContext('2d');
+  if (!_ambResizeBound) { window.addEventListener('resize', resizeCanvas); _ambResizeBound = true; }
+  resizeCanvas();
+  ambPrev = 0; ambLastPhase = '';
   runStarfieldLoop();
 }
-function resizeCanvas() { if (!canvas) return; const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; }
+
+function resizeCanvas() {
+  if (!canvas) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = canvas.parentElement.getBoundingClientRect();
+  ambW = rect.width; ambH = rect.height;
+  canvas.width = Math.round(ambW * dpr); canvas.height = Math.round(ambH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ambCx = ambW * 0.5; ambCy = ambH * 0.45; ambBaseR = Math.min(ambW, ambH) * 0.185;
+  const n = Math.round(ambW * 0.055);
+  stars = [];
+  for (let i = 0; i < n; i++) { const s = {}; _ambSpawnStar(s, true); stars.push(s); }
+}
+
 function runStarfieldLoop() {
-  if (!isAmbientActive) return;
-  ctx.fillStyle = 'rgba(2, 4, 8, 0.25)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ambientPacerVal += 0.007 * ambientPacerDirection;
-  if (ambientPacerVal >= 1) { ambientPacerVal = 1; ambientPacerDirection = -1; } else if (ambientPacerVal <= 0.02) { ambientPacerVal = 0.02; ambientPacerDirection = 1; }
-  const label = document.getElementById('ambient-pacer-label');
-  if (ambientPacerDirection === 1) { label.innerText = "Breathe in deeply..."; label.style.color = "var(--accent-sage)"; } else { label.innerText = "Exhale slowly... Let go"; label.style.color = "var(--accent-indigo)"; }
-  const centerX = canvas.width / 2; const centerY = canvas.height / 2;
-  stars.forEach(star => {
-    star.z -= 1.5 + (ambientPacerVal * 6);
-    if (star.z <= 0) { star.z = canvas.width; star.x = Math.random() * canvas.width - canvas.width / 2; star.y = Math.random() * canvas.height - canvas.height / 2; }
-    const k = 128.0 / star.z; const px = star.x * k + centerX; const py = star.y * k + centerY;
-    if (px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) { const size = (1 - star.z / canvas.width) * (2 + ambientPacerVal * 4); ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI * 2); ctx.fillStyle = star.color; ctx.fill(); }
-  });
+  if (!isAmbientActive || !ctx) return;
+  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const now = performance.now();
+  if (!ambPrev) ambPrev = now;
+  const dt = Math.min(now - ambPrev, 60); ambPrev = now;
+  const T = 12000, pm = now % T;
+  let phase, tip, pdur, b;
+  if (pm < 4000) { phase = 'Inhale'; tip = pm; pdur = 4000; b = _ambEase(pm / 4000); }
+  else if (pm < 6000) { phase = 'Hold'; tip = pm - 4000; pdur = 2000; b = 1; }
+  else { phase = 'Exhale'; tip = pm - 6000; pdur = 6000; b = _ambEase(1 - (pm - 6000) / 6000); }
+  const cyc = pm / T, W = ambW, H = ambH;
+  ctx.fillStyle = '#040509'; ctx.fillRect(0, 0, W, H);
+  const aur = ctx.createRadialGradient(W * 0.5, H * 1.05, 0, W * 0.5, H * 1.05, H * 0.95);
+  aur.addColorStop(0, 'rgba(34,52,66,0.16)'); aur.addColorStop(1, 'rgba(34,52,66,0)');
+  ctx.fillStyle = aur; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < stars.length; i++) {
+    const st = stars[i];
+    if (!reduce) { st.age += dt; if (st.age >= st.life) _ambSpawnStar(st, false); }
+    const a = st.max * Math.sin((st.age / st.life) * Math.PI);
+    if (a > 0.002) { ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 6.2832); ctx.fillStyle = 'rgba(216,224,242,' + a.toFixed(3) + ')'; ctx.fill(); }
+  }
+  const R = ambBaseR * (0.82 + 0.18 * b);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const gl = ctx.createRadialGradient(ambCx, ambCy, R * 0.2, ambCx, ambCy, R * 1.9);
+  gl.addColorStop(0, 'rgba(233,227,210,' + (0.06 + 0.05 * b).toFixed(3) + ')');
+  gl.addColorStop(0.6, 'rgba(233,227,210,' + (0.03 + 0.03 * b).toFixed(3) + ')');
+  gl.addColorStop(1, 'rgba(233,227,210,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(ambCx, ambCy, R * 1.9, 0, 6.2832); ctx.fill(); ctx.restore();
+  const inn = ctx.createRadialGradient(ambCx, ambCy, 0, ambCx, ambCy, R);
+  inn.addColorStop(0, 'rgba(233,227,210,' + (0.05 + 0.04 * b).toFixed(3) + ')');
+  inn.addColorStop(1, 'rgba(233,227,210,0)');
+  ctx.fillStyle = inn; ctx.beginPath(); ctx.arc(ambCx, ambCy, R, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = 'rgba(233,227,210,' + (0.30 + 0.18 * b).toFixed(3) + ')'; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.arc(ambCx, ambCy, R, 0, 6.2832); ctx.stroke();
+  const pr = R + 12;
+  ctx.strokeStyle = 'rgba(233,227,210,0.07)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(ambCx, ambCy, pr, 0, 6.2832); ctx.stroke();
+  ctx.strokeStyle = 'rgba(233,227,210,0.58)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(ambCx, ambCy, pr, -1.5708, -1.5708 + cyc * 6.2832); ctx.stroke();
+  const vg = ctx.createRadialGradient(W * 0.5, H * 0.45, H * 0.28, W * 0.5, H * 0.5, H * 0.85);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  const wordEl = document.getElementById('ambient-phase');
+  if (wordEl) {
+    if (phase !== ambLastPhase) { wordEl.textContent = phase; ambLastPhase = phase; }
+    const fi = Math.min(tip / 520, 1), fo = Math.min((pdur - tip) / 460, 1);
+    wordEl.style.opacity = (0.78 * Math.max(0, Math.min(fi, fo))).toFixed(3);
+  }
   animationFrameId = requestAnimationFrame(runStarfieldLoop);
 }
 
@@ -1785,11 +1866,14 @@ function renderPrayerUI() {
    Nothing autostarts loudly. All choices persist in localStorage.
    ========================================================================== */
 const SOUND_KEY = 'haven_sound_v1';
+// Per-preset master gains are loudness-matched to the actual files:
+//   forest rain  -30.0 LUFS (anchor, 0.32) · focus drone -26.2 LUFS (+3.8 LU -> 0.22)
+//   ocean swells -29.0 LUFS, wide ±7 LU dynamics -> kept gentle at 0.24 so swells don't startle.
 const SOUND_PRESETS = {
-  sleep:   { master: 0.32, ambientLoop: true,  uiSounds: false, haptics: false },
-  focus:   { master: 0.45, ambientLoop: true,  uiSounds: false, haptics: true  },
-  panic:   { master: 0.30, ambientLoop: true,  uiSounds: false, haptics: true  },
-  reading: { master: 0.40, ambientLoop: false, uiSounds: true,  haptics: false }
+  sleep:   { master: 0.32, ambientLoop: true,  uiSounds: false, haptics: false, audio: './audio/haven-ambient.mp3' },
+  focus:   { master: 0.22, ambientLoop: true,  uiSounds: false, haptics: true,  audio: './audio/focus-drone.mp3'   },
+  panic:   { master: 0.24, ambientLoop: true,  uiSounds: false, haptics: true,  audio: './audio/panic-ocean.mp3'   },
+  reading: { master: 0.30, ambientLoop: false, uiSounds: true,  haptics: false, audio: null                        }
 };
 function loadSoundSettings() {
   const d = { master: 0.7, ambientLoop: true, uiSounds: false, haptics: true, preset: null };
@@ -1810,9 +1894,17 @@ function toggleSoundSetting(key) {
 }
 function applySoundPreset(name) {
   const p = SOUND_PRESETS[name]; if (!p) return;
-  Object.assign(soundSettings, p, { preset: name }); persistSoundSettings();
-  if (soundSettings.ambientLoop) { if (!isShieldPlaying) startSoundShield(true); else shieldFade(soundSettings.master, 0.6); }
-  else if (isShieldPlaying) { stopSoundShield(true); }
+  soundSettings.master = p.master; soundSettings.ambientLoop = p.ambientLoop;
+  soundSettings.uiSounds = p.uiSounds; soundSettings.haptics = p.haptics; soundSettings.preset = name;
+  persistSoundSettings();
+  if (p.ambientLoop && p.audio) {
+    const switching = currentAmbientSrc.replace(/^\.\//, '') !== p.audio.replace(/^\.\//, '');
+    setAmbientPreset(p.audio);                       // loads this preset's track (crossfades if already playing)
+    if (!isShieldPlaying) startSoundShield(true);    // gentle fade-in to the tuned volume
+    else if (!switching) shieldFade(soundSettings.master, 0.6);
+  } else if (isShieldPlaying) {
+    stopSoundShield(true);
+  }
   renderSoundSettings(); triggerHaptic('tick');
   const label = name === 'panic' ? 'Panic Reset' : name.charAt(0).toUpperCase() + name.slice(1);
   showToast('Sound preset: ' + label);
@@ -2085,6 +2177,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderFeed();
   renderPrayerUI();
   initSameSky();
+  if (soundSettings.preset && SOUND_PRESETS[soundSettings.preset] && SOUND_PRESETS[soundSettings.preset].audio) {
+    currentAmbientSrc = SOUND_PRESETS[soundSettings.preset].audio;
+  }
   renderSoundSettings();
   applyReaderPrefs();
   const _la = document.getElementById('letter-audio');

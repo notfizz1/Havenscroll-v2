@@ -290,13 +290,14 @@ body { display: flex; justify-content: center; align-items: center; background-i
 /* ==========================================================================
    8. OVERLAYS, PLAYER & NAVIGATION
    ========================================================================== */
-#ambient-starfield-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #020408; z-index: 600; display: none; flex-direction: column; justify-content: space-between; padding: 2.5rem 2rem; }
+#ambient-starfield-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #040509; z-index: 600; display: none; flex-direction: column; justify-content: space-between; padding: 2.5rem 2rem; }
 #starfield-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 .ambient-header { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
 .ambient-exit { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-primary); padding: 0.45rem 1rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; cursor: pointer; font-family: var(--font-sans); }
 .ambient-pacer-indicator { position: relative; z-index: 2; text-align: center; margin-top: auto; margin-bottom: auto; }
 .ambient-pacer-text { font-size: 1.15rem; font-weight: 300; color: #FFF; letter-spacing: 0.05em; transition: opacity 0.5s; }
-.ambient-footer { position: relative; z-index: 2; text-align: center; font-size: 0.65rem; color: rgba(255,255,255,0.2); letter-spacing: 0.2em; text-transform: uppercase; }
+.ambient-phase { position: absolute; left: 0; right: 0; top: 45%; transform: translateY(-50%); z-index: 2; text-align: center; font-family: var(--font-sans); font-weight: 300; font-size: 0.75rem; letter-spacing: 0.42em; text-indent: 0.42em; text-transform: uppercase; color: #E9E3D2; opacity: 0; pointer-events: none; }
+.ambient-footer { position: relative; z-index: 2; text-align: center; font-family: var(--font-serif); font-style: italic; font-size: 0.78rem; color: rgba(214,221,235,0.26); letter-spacing: 0.03em; }
 
 #letter-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 14, 23, 0.98); z-index: 500; display: none; flex-direction: column; padding: 3rem 2rem; overflow-y: auto; }
 .modal-close { background: none; border: none; color: var(--accent-gold); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; cursor: pointer; align-self: flex-start; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-sans); }
