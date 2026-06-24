@@ -64,18 +64,17 @@
         <div class="brand-logo">Haven<span>Scroll</span></div>
         <div class="top-action-bar">
           <button class="header-btn" id="sound-shield-btn" onclick="toggleSoundShield()" title="Activate Sound Shield (Forest Rain)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             <span id="sound-btn-text">Sound Shield</span>
           </button>
-          <button class="header-btn" id="pacer-shortcut" onclick="scrollToPacerCard()" title="Breathe Pacer">≈ Pacer</button>
+          <button class="header-btn" id="pacer-shortcut" onclick="scrollToPacerCard()" title="Breathe Pacer">Pacer</button>
         </div>
       </div>
       <div class="filter-row" id="filter-container">
         <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">All Tracks</button>
-        <button class="filter-pill" data-filter="sanctuary" onclick="setFilter('sanctuary')">✦ Sanctuary</button>
-        <button class="filter-pill" data-filter="neuro" onclick="setFilter('neuro')">≈ Neuro-Sync</button>
-        <button class="filter-pill" data-filter="satire" onclick="setFilter('satire')">❖ Dry Satire</button>
-        <button class="filter-pill author-toggle-btn" id="author-toggle-btn" onclick="toggleAuthorPanel()">👤 Authors</button>
+        <button class="filter-pill" data-filter="sanctuary" onclick="setFilter('sanctuary')">Sanctuary</button>
+        <button class="filter-pill" data-filter="neuro" onclick="setFilter('neuro')">Neuro-Sync</button>
+        <button class="filter-pill" data-filter="satire" onclick="setFilter('satire')">Dry Satire</button>
+        <button class="filter-pill author-toggle-btn" id="author-toggle-btn" onclick="toggleAuthorPanel()">Authors</button>
       </div>
       <div id="author-badge-row" class="author-badge-row" style="display:none">
         <span style="font-size:0.7rem;color:var(--text-muted)">Author:</span>
@@ -376,15 +375,15 @@
     <div id="bottom-nav">
       <button class="tab-btn active" id="tab-stream" onclick="switchTab('stream')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        <span class="tab-label">✦ Quotes</span>
+        <span class="tab-label">Quotes</span>
       </button>
       <button class="tab-btn" id="tab-books" onclick="switchTab('books')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        <span class="tab-label">📖 Books</span>
+        <span class="tab-label">Books</span>
       </button>
       <button class="tab-btn" id="tab-oasis" onclick="switchTab('oasis')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
-        <span class="tab-label">✦ Oasis</span>
+        <span class="tab-label">Oasis</span>
       </button>
     </div>
   </div>
