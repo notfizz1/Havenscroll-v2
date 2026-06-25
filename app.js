@@ -141,8 +141,11 @@ function armNativeHapticTargets() {
     sw.className = 'ios-haptic-overlay';
     sw.setAttribute('aria-hidden', 'true');
     sw.tabIndex = -1;
-    // prevent the toggle from stealing the event from the real button
-    sw.addEventListener('click', e => e.stopPropagation(), { passive: false });
+    // iOS FIX: the tap must bubble to the real button so its onclick (tab switch,
+    // filters, drawers…) still fires. Do NOT stopPropagation here, and let pointer
+    // events pass straight through to the control underneath as a safety net — the
+    // switch is purely for the Taptic Engine, never for hit-testing.
+    sw.style.pointerEvents = 'none';
     el.appendChild(sw);
     el.dataset.hapticArmed = '1';
   });
