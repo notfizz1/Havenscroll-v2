@@ -1,4 +1,4 @@
-const CACHE_NAME = 'havenscroll-cache-v2.6.6';
+const CACHE_NAME = 'havenscroll-cache-v2.6.7';
 
 // Everything the sanctuary needs to run with zero network
 const ASSETS_TO_CACHE = [
@@ -14,6 +14,7 @@ const ASSETS_TO_CACHE = [
   './audio/haven-ambient.mp3',
   './audio/focus-drone.mp3',
   './audio/panic-ocean.mp3',
+  './audio/to-build-a-home.mp3',
   './books/books.json',
   './video/sanctuary-bg.mp4',
   './video/neuro-bg.mp4',
@@ -21,7 +22,12 @@ const ASSETS_TO_CACHE = [
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './assets/moon-photo.png'
+  './assets/moon-photo.png',
+  './danna/2692.mp4', './danna/3153.jpg', './danna/3500.jpg', './danna/3528.jpg',
+  './danna/3916.jpg', './danna/5165.mp4', './danna/5171.jpg', './danna/6804.jpg',
+  './danna/6853.mp4', './danna/6859.jpg', './danna/6866.jpg', './danna/6871.jpg',
+  './danna/6925.mp4', './danna/6926.jpg', './danna/6928.jpg', './danna/6929.jpg',
+  './danna/6931.png'
 ];
 
 self.addEventListener('install', event => {

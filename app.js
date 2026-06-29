@@ -2171,6 +2171,91 @@ function _setLetterAudioUI(playing) {
   if (lb) lb.textContent = playing ? 'Pause' : "Play in Omer's voice";
 }
 
+/* ==========================================================================
+   27. "JAG OCH DU" — a private full-screen experience (letter → memories → close)
+   The song loops while inside and stops on exit. Slideshow videos are silent.
+   ========================================================================== */
+const JOD_MEDIA = [
+  { f: '2692.mp4', v: true }, { f: '3153.jpg' }, { f: '3500.jpg' }, { f: '3528.jpg' },
+  { f: '3916.jpg' }, { f: '5165.mp4', v: true }, { f: '5171.jpg' }, { f: '6804.jpg' },
+  { f: '6853.mp4', v: true }, { f: '6859.jpg' }, { f: '6866.jpg' }, { f: '6871.jpg' },
+  { f: '6925.mp4', v: true }, { f: '6926.jpg' }, { f: '6928.jpg' }, { f: '6929.jpg' },
+  { f: '6931.png' }   // the heart — always last
+];
+let jodIndex = 0;
+
+// Telegram read-receipt. Token below; chat id filled once you message the bot.
+const JOD_TG_TOKEN = '8687662200:AAERxrK9WHVrm6BJLK3y0fJZEVuwxJ5zQcM';
+const JOD_TG_CHAT  = '6355007115';
+function jodNotify() {
+  if (!JOD_TG_TOKEN || !JOD_TG_CHAT) return;
+  try {
+    const msg = 'Danna öppnade "Jag och du" ❤️ — ' + new Date().toLocaleString();
+    const url = 'https://api.telegram.org/bot' + JOD_TG_TOKEN + '/sendMessage?chat_id=' +
+                encodeURIComponent(JOD_TG_CHAT) + '&text=' + encodeURIComponent(msg);
+    fetch(url, { mode: 'no-cors' }).catch(function () {});
+  } catch (e) {}
+}
+
+function _jodShow(phase) {
+  document.getElementById('jod-letter').style.display = (phase === 'letter') ? 'flex' : 'none';
+  document.getElementById('jod-slides').style.display = (phase === 'slides') ? 'flex' : 'none';
+  document.getElementById('jod-final').style.display  = (phase === 'final')  ? 'flex' : 'none';
+}
+
+function openJagOchDu() {
+  const ov = document.getElementById('jagochdu-overlay'); if (!ov) return;
+  killPacerEngine();
+  try { if (isShieldPlaying) stopSoundShield(true); } catch (e) {}
+  try { if (nativeAudio) nativeAudio.pause(); } catch (e) {}
+  jodIndex = 0;
+  _jodShow('letter');
+  const lt = document.querySelector('#jod-letter .jod-letter-inner'); if (lt) lt.scrollTop = 0;
+  ov.classList.add('open'); ov.setAttribute('aria-hidden', 'false');
+  const a = document.getElementById('jod-audio');
+  if (a) { if (!a.getAttribute('src')) a.src = './audio/to-build-a-home.mp3'; a.loop = true; a.volume = 0.85; try { a.currentTime = 0; } catch (e) {} a.play().catch(function () {}); }
+  triggerHaptic('heavy');
+  jodNotify();
+}
+
+function jodToSlides() { _jodShow('slides'); jodIndex = 0; jodRenderSlide(); triggerHaptic('tick'); }
+
+function jodRenderSlide() {
+  const stage = document.getElementById('jod-stage'); if (!stage) return;
+  const m = JOD_MEDIA[jodIndex]; if (!m) return;
+  const src = './danna/' + m.f;
+  if (m.v) {
+    stage.innerHTML = '<video src="' + src + '" muted playsinline autoplay loop preload="auto"></video>';
+    const vid = stage.querySelector('video'); if (vid) { vid.muted = true; vid.play().catch(function () {}); }
+  } else {
+    stage.innerHTML = '<img src="' + src + '" alt="">';
+  }
+  const isHeart = (jodIndex === JOD_MEDIA.length - 1);
+  const hint = document.getElementById('jod-hint');
+  if (hint) hint.textContent = isHeart ? 'Tap right →' : ((jodIndex + 1) + ' / ' + JOD_MEDIA.length);
+  triggerHaptic('tick');
+}
+
+function jodSlide(dir) {
+  if (dir > 0 && jodIndex >= JOD_MEDIA.length - 1) { jodToFinal(); return; }
+  if (dir < 0 && jodIndex <= 0) return;
+  jodIndex += dir; jodRenderSlide();
+}
+
+function jodToFinal() {
+  const stage = document.getElementById('jod-stage'); if (stage) stage.innerHTML = '';
+  _jodShow('final'); triggerHaptic('save');
+}
+
+function closeJagOchDu() {
+  const ov = document.getElementById('jagochdu-overlay'); if (!ov) return;
+  const a = document.getElementById('jod-audio');
+  if (a) { try { a.pause(); a.currentTime = 0; } catch (e) {} }
+  const stage = document.getElementById('jod-stage'); if (stage) stage.innerHTML = '';
+  ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true');
+  triggerHaptic('tick');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   applyDaypartTheme();
   setInterval(applyDaypartTheme, 10 * 60 * 1000);

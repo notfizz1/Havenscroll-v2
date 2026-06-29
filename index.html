@@ -44,6 +44,37 @@
     <div class="calm-progress"><div class="calm-progress-fill" id="calm-progress-fill"></div></div>
   </div>
 
+  <!-- ❤️ JAG OCH DU OVERLAY -->
+  <div id="jagochdu-overlay" class="jod-overlay" aria-hidden="true">
+    <button class="jod-exit" onclick="closeJagOchDu()" aria-label="Close">✕</button>
+
+    <!-- Phase 1: the letter -->
+    <div class="jod-phase jod-letter" id="jod-letter">
+      <div class="jod-letter-inner">
+        <p class="jod-kicker">Jag och du ❤️</p>
+        <p class="jod-letter-text">Jag lovade dig att ge dig det utrymme du behöver för att läka dina sår, och jag tänker hålla det. Men jag ville att det här brevet skulle finnas kvar här inne, som en tyst liten påminnelse till dig.</p>
+        <p class="jod-letter-text">Du är fantastisk. Du är värd all kärlek, all trygghet och allt det fina i världen. Jag tror på dig och jag vet att du kommer att ta dig igenom det som gör ont inuti. Tack för att jag fick se dig blomstra, och tack för varje minne vi skapade. Min tröja, min doft och det jag skrev på lappen, det gäller. Jag älskar dig för evigt, och jag släpper dig fri med precis lika mycket kärlek. Ta hand om dig. ❤️</p>
+        <p class="jod-letter-text">Jag älskar dig Danna, jag älskar dig zemer, jag älskar dig min prinsessa &amp; jag älskar dig min cutie cutie patootie.</p>
+        <button class="jod-continue" onclick="jodToSlides()">Våra minnen →</button>
+      </div>
+    </div>
+
+    <!-- Phase 2: the slideshow -->
+    <div class="jod-phase jod-slides" id="jod-slides" style="display:none">
+      <div class="jod-stage" id="jod-stage"></div>
+      <div class="jod-tap-left" onclick="jodSlide(-1)">‹</div>
+      <div class="jod-tap-right" onclick="jodSlide(1)">›</div>
+      <div class="jod-hint" id="jod-hint"></div>
+    </div>
+
+    <!-- Phase 3: the final words -->
+    <div class="jod-phase jod-final" id="jod-final" style="display:none">
+      <p class="jod-final-text">Omer &amp; Danna<br>för alltid</p>
+    </div>
+
+    <audio id="jod-audio" loop preload="none"></audio>
+  </div>
+
   <!-- PRIMARY APP WRAPPER -->
   <div id="app-wrapper">
     <!-- CINEMATIC SPLASH SCREEN -->
@@ -135,6 +166,12 @@
     <!-- OASIS TOOLKIT -->
     <div id="oasis-view">
       <div class="oasis-header"><h2 class="oasis-title">Your <span>Oasis</span></h2><p class="oasis-subtitle">A quiet place that knows what kind of comfort you need right now.</p></div>
+
+      <!-- ❤️ JAG OCH DU -->
+      <button class="jagochdu-btn" onclick="openJagOchDu()">
+        <span class="jod-heart" aria-hidden="true">❤️</span>
+        <span class="jod-label">Jag och du</span>
+      </button>
 
       <!-- TONIGHT — gentle daily landing (rendered by app.js) -->
       <div id="tonight-panel" class="tonight-panel"></div>
